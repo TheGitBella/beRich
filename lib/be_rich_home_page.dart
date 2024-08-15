@@ -1,17 +1,20 @@
-import 'package:be_rich_app/tab_controle_ideal.dart';
-import 'package:be_rich_app/tab_creditos.dart';
-import 'package:be_rich_app/tab_dashboard.dart';
-import 'package:be_rich_app/tab_despesas_fixas.dart';
-import 'package:be_rich_app/tab_dividas.dart';
-import 'package:be_rich_app/tab_extrato_mensal.dart';
-import 'package:be_rich_app/tab_investimentos.dart';
-import 'package:be_rich_app/tab_metas.dart';
-import 'package:be_rich_app/tab_receitas_fixas.dart';
-import 'package:be_rich_app/tab_resumo_mensal.dart';
+import 'tab_controle_ideal.dart';
+import 'tab_creditos.dart';
+import 'tab_dashboard.dart';
+import 'tab_despesas_fixas.dart';
+import 'tab_dividas.dart';
+import 'tab_extrato_mensal.dart';
+import 'tab_investimentos.dart';
+import 'tab_metas.dart';
+import 'tab_receitas_fixas.dart';
+import 'tab_resumo_mensal.dart';
+import 'tab_config_page.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'be_rich_app_state.dart';
+
 
 class BeRichHomePage extends StatelessWidget {
   @override
@@ -61,7 +64,7 @@ class BeRichHomePage extends StatelessWidget {
             TabCreditos(),
             TabExtratoMensal(),
             TabResumoMensal(),
-            Center(child: Text('Conteúdo da Aba Configurações')),
+            TabConfigPage(),
           ],
         ),
       ),
