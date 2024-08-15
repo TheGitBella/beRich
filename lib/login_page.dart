@@ -10,7 +10,6 @@ class LoginPage extends StatelessWidget {
     try {
       final GoogleUser = await _googleSignIn.signIn();
       if (GoogleUser == null) {
-        // O usuário cancelou o login
         return;
       }
 
@@ -30,21 +29,30 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
+      backgroundColor: Color(0xFFFFC3A1),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () => _signInWithGoogle(context),
-              child: Text('Entrar com Google'),
+            // Logo do aplicativo
+            Image.asset(
+              'assets/icons/beRichLogo.png',
+              width: 300,
+              height: 300,
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-              child: Text('Ir para a página principal'),
+            SizedBox(height: 50),
+            ElevatedButton.icon(
+              onPressed: () => _signInWithGoogle(context),
+              label: Text('Login com Google'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.black,
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  side: BorderSide(color: Colors.grey),
+                ),
+              ),
             ),
           ],
         ),
