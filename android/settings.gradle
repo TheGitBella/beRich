@@ -25,4 +25,5 @@ plugins {
     id "org.jetbrains.kotlin.android" version "1.7.10" apply false
 }
 
-include ":app"
+include ':app'
+include ':google_sign_in_android'
