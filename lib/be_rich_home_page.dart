@@ -1,3 +1,7 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'be_rich_app_state.dart';
 import 'tab_controle_ideal.dart';
 import 'tab_creditos.dart';
 import 'tab_dashboard.dart';
@@ -10,13 +14,22 @@ import 'tab_receitas_fixas.dart';
 import 'tab_resumo_mensal.dart';
 import 'tab_config_page.dart';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+class BeRichHomePage extends StatefulWidget {
+  @override
+  _BeRichHomePageState createState() => _BeRichHomePageState();
+}
 
-import 'be_rich_app_state.dart';
+class _BeRichHomePageState extends State<BeRichHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Carregar dados quando o widget for inicializado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<BeRichAppState>(context, listen: false);
+      appState.loadTables();
+    });
+  }
 
-
-class BeRichHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<BeRichAppState>();

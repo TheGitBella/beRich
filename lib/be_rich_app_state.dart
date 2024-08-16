@@ -1,17 +1,71 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class BeRichAppState extends ChangeNotifier {
-  // Lista para armazenar as tabelas de receitas
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   List<Map<String, dynamic>> _receitasTables = [];
   List<Map<String, dynamic>> _despesasTables = [];
 
-  // Getter para acessar as tabelas de receitas
   List<Map<String, dynamic>> get receitasTables => _receitasTables;
   List<Map<String, dynamic>> get despesasTables => _despesasTables;
 
-  // Função para adicionar uma nova tabela de receitas
+  // Carregar dados do Firestore
+  Future<void> loadTables() async {
+    try {
+      final receitasSnapshot = await _firestore.collection('receitas').get();
+      final despesasSnapshot = await _firestore.collection('despesas').get();
+
+      _receitasTables = receitasSnapshot.docs.map((doc) {
+        return {
+          'id': doc.id, // Adicionando o ID do documento para futuras operações
+          'nome': doc['nome'],
+          'expensas': List<Map<String, dynamic>>.from(doc['expensas'])
+        };
+      }).toList();
+
+      _despesasTables = despesasSnapshot.docs.map((doc) {
+        return {
+          'id': doc.id, // Adicionando o ID do documento para futuras operações
+          'nome': doc['nome'],
+          'expensas': List<Map<String, dynamic>>.from(doc['expensas'])
+        };
+      }).toList();
+
+      notifyListeners();
+    } catch (e) {
+      print("Erro ao carregar dados: $e");
+    }
+  }
+
+  // Salvar dados no Firestore
+  Future<void> _saveReceitasTables() async {
+    final batch = _firestore.batch();
+
+    for (var tabela in _receitasTables) {
+      var docRef = _firestore.collection('receitas').doc(tabela['id'] ?? '');
+      batch.set(docRef, tabela);
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> _saveDespesasTables() async {
+    final batch = _firestore.batch();
+
+    for (var tabela in _despesasTables) {
+      var docRef = _firestore.collection('despesas').doc(tabela['id'] ?? '');
+      batch.set(docRef, tabela);
+    }
+
+    await batch.commit();
+  }
+
+  // Funções para adicionar e remover tabelas e receitas/despesas
   void addReceitasTable(String nome) {
+    var docRef = _firestore.collection('receitas').doc();
     _receitasTables.add({
+      'id': docRef.id,
       'nome': nome,
       'expensas': [
         {
@@ -22,15 +76,17 @@ class BeRichAppState extends ChangeNotifier {
       ],
     });
     notifyListeners();
+    _saveReceitasTables();
   }
 
-  // Função para remover uma tabela de receitas
-  void removeReceitasTable(int tableIndex) {
+  void removeReceitasTable(int tableIndex) async {
+    var tableId = _receitasTables[tableIndex]['id'];
     _receitasTables.removeAt(tableIndex);
     notifyListeners();
+    await _firestore.collection('receitas').doc(tableId).delete();
+    _saveReceitasTables();
   }
 
-  // Função para adicionar uma nova receita a uma tabela existente
   void addReceita(int tableIndex, String nome, double valor) {
     _receitasTables[tableIndex]['expensas'].add({
       'nome': nome,
@@ -38,24 +94,26 @@ class BeRichAppState extends ChangeNotifier {
       'paga': false,
     });
     notifyListeners();
+    _saveReceitasTables();
   }
 
-  // Função para remover uma receita de uma tabela existente
   void removeReceita(int tableIndex, int rowIndex) {
     _receitasTables[tableIndex]['expensas'].removeAt(rowIndex);
     notifyListeners();
+    _saveReceitasTables();
   }
 
-  // Função para alternar o estado de pagamento de uma receita
   void toggleReceitaPaga(int tableIndex, int rowIndex) {
     _receitasTables[tableIndex]['expensas'][rowIndex]['paga'] =
     !_receitasTables[tableIndex]['expensas'][rowIndex]['paga'];
     notifyListeners();
+    _saveReceitasTables();
   }
 
-  // Função para adicionar uma nova tabela de despesas
   void addDespesasTable(String nome) {
+    var docRef = _firestore.collection('despesas').doc();
     _despesasTables.add({
+      'id': docRef.id,
       'nome': nome,
       'expensas': [
         {
@@ -66,15 +124,17 @@ class BeRichAppState extends ChangeNotifier {
       ],
     });
     notifyListeners();
+    _saveDespesasTables();
   }
 
-  // Função para remover uma tabela de despesas
-  void removeDespesasTable(int tableIndex) {
+  void removeDespesasTable(int tableIndex) async {
+    var tableId = _despesasTables[tableIndex]['id'];
     _despesasTables.removeAt(tableIndex);
     notifyListeners();
+    await _firestore.collection('despesas').doc(tableId).delete();
+    _saveDespesasTables();
   }
 
-  // Função para adicionar uma nova despesa a uma tabela existente
   void addDespesa(int tableIndex, String nome, double valor) {
     _despesasTables[tableIndex]['expensas'].add({
       'nome': nome,
@@ -82,22 +142,23 @@ class BeRichAppState extends ChangeNotifier {
       'paga': false,
     });
     notifyListeners();
+    _saveDespesasTables();
   }
 
-  // Função para remover uma despesa de uma tabela existente
   void removeDespesa(int tableIndex, int rowIndex) {
     _despesasTables[tableIndex]['expensas'].removeAt(rowIndex);
     notifyListeners();
+    _saveDespesasTables();
   }
 
-  // Função para alternar o estado de pagamento de uma despesa
   void toggleDespesaPaga(int tableIndex, int rowIndex) {
     _despesasTables[tableIndex]['expensas'][rowIndex]['paga'] =
     !_despesasTables[tableIndex]['expensas'][rowIndex]['paga'];
     notifyListeners();
+    _saveDespesasTables();
   }
 
-  // Calcular total de receitas por categoria
+  // Calcular totais
   Map<String, double> calcularTotalReceitasPorCategoria() {
     Map<String, double> totaisPorCategoria = {};
 
@@ -119,7 +180,6 @@ class BeRichAppState extends ChangeNotifier {
     return totaisPorCategoria;
   }
 
-  // Calcular total de despesas por categoria
   Map<String, double> calcularTotalDespesasPorCategoria() {
     Map<String, double> totaisPorCategoria = {};
 
