@@ -18,7 +18,7 @@ class BeRichAppState extends ChangeNotifier {
 
       _receitasTables = receitasSnapshot.docs.map((doc) {
         return {
-          'id': doc.id, // Adicionando o ID do documento para futuras operações
+          'id': doc.id,
           'nome': doc['nome'],
           'expensas': List<Map<String, dynamic>>.from(doc['expensas'])
         };
@@ -26,7 +26,7 @@ class BeRichAppState extends ChangeNotifier {
 
       _despesasTables = despesasSnapshot.docs.map((doc) {
         return {
-          'id': doc.id, // Adicionando o ID do documento para futuras operações
+          'id': doc.id,
           'nome': doc['nome'],
           'expensas': List<Map<String, dynamic>>.from(doc['expensas'])
         };
@@ -43,22 +43,34 @@ class BeRichAppState extends ChangeNotifier {
     final batch = _firestore.batch();
 
     for (var tabela in _receitasTables) {
-      var docRef = _firestore.collection('receitas').doc(tabela['id'] ?? '');
+      var docRef = _firestore.collection('receitas').doc(tabela['id']);
       batch.set(docRef, tabela);
+      print('Adicionando receita à batch: ${tabela['id']}');
     }
 
-    await batch.commit();
+    try {
+      await batch.commit();
+      print('Dados de receitas atualizados no Firestore com sucesso.');
+    } catch (e) {
+      print('Erro ao atualizar dados de receitas no Firestore: $e');
+    }
   }
 
   Future<void> _saveDespesasTables() async {
     final batch = _firestore.batch();
 
     for (var tabela in _despesasTables) {
-      var docRef = _firestore.collection('despesas').doc(tabela['id'] ?? '');
+      var docRef = _firestore.collection('despesas').doc(tabela['id']);
       batch.set(docRef, tabela);
+      print('Adicionando despesa à batch: ${tabela['id']}');
     }
 
-    await batch.commit();
+    try {
+      await batch.commit();
+      print('Dados de despesas atualizados no Firestore com sucesso.');
+    } catch (e) {
+      print('Erro ao atualizar dados de despesas no Firestore: $e');
+    }
   }
 
   // Funções para adicionar e remover tabelas e receitas/despesas
@@ -69,6 +81,7 @@ class BeRichAppState extends ChangeNotifier {
       'nome': nome,
       'expensas': [
         {
+          'id': docRef.collection('expensas').doc().id,
           'nome': '',
           'valor': 0.0,
           'paga': false,
@@ -76,6 +89,16 @@ class BeRichAppState extends ChangeNotifier {
       ],
     });
     notifyListeners();
+    _saveReceitasTables();
+  }
+
+  Future<void> updateReceitasTableName(int tableIndex, String newName) async {
+    var tableId = _receitasTables[tableIndex]['id'];
+    _receitasTables[tableIndex]['nome'] = newName;
+    notifyListeners();
+    await _firestore.collection('receitas').doc(tableId).update({
+      'nome': newName,
+    });
     _saveReceitasTables();
   }
 
@@ -88,7 +111,11 @@ class BeRichAppState extends ChangeNotifier {
   }
 
   void addReceita(int tableIndex, String nome, double valor) {
+    var receitaId = _firestore.collection('receitas')
+        .doc(_receitasTables[tableIndex]['id'])
+        .collection('expensas').doc().id;
     _receitasTables[tableIndex]['expensas'].add({
+      'id': receitaId,
       'nome': nome,
       'valor': valor,
       'paga': false,
@@ -97,9 +124,37 @@ class BeRichAppState extends ChangeNotifier {
     _saveReceitasTables();
   }
 
+  Future<void> updateReceita(int tableIndex, int rowIndex, String newName, double newValue) async {
+    var receita = _receitasTables[tableIndex]['expensas'][rowIndex];
+    var receitaId = receita['id'];
+
+    _receitasTables[tableIndex]['expensas'][rowIndex] = {
+      'id': receitaId,
+      'nome': newName,
+      'valor': newValue,
+      'paga': receita['paga'],
+    };
+    notifyListeners();
+    await _firestore.collection('receitas')
+          .doc(_receitasTables[tableIndex]['id'])
+          .collection('expensas')
+          .doc(receitaId)
+          .update({
+        'nome': newName,
+        'valor': newValue,
+      });
+    _saveReceitasTables();
+  }
+
   void removeReceita(int tableIndex, int rowIndex) {
+    var receitaId = _receitasTables[tableIndex]['expensas'][rowIndex]['id'];
     _receitasTables[tableIndex]['expensas'].removeAt(rowIndex);
     notifyListeners();
+    _firestore.collection('receitas')
+        .doc(_receitasTables[tableIndex]['id'])
+        .collection('expensas')
+        .doc(receitaId)
+        .delete();
     _saveReceitasTables();
   }
 
@@ -117,6 +172,7 @@ class BeRichAppState extends ChangeNotifier {
       'nome': nome,
       'expensas': [
         {
+          'id': docRef.collection('expensas').doc().id,
           'nome': '',
           'valor': 0.0,
           'paga': false,
@@ -124,6 +180,16 @@ class BeRichAppState extends ChangeNotifier {
       ],
     });
     notifyListeners();
+    _saveDespesasTables();
+  }
+
+  Future<void> updateDespesasTableName(int tableIndex, String newName) async {
+    var tableId = _despesasTables[tableIndex]['id'];
+    _despesasTables[tableIndex]['nome'] = newName;
+    notifyListeners();
+    await _firestore.collection('despesas').doc(tableId).update({
+      'nome': newName,
+    });
     _saveDespesasTables();
   }
 
@@ -136,7 +202,11 @@ class BeRichAppState extends ChangeNotifier {
   }
 
   void addDespesa(int tableIndex, String nome, double valor) {
+    var despesaId = _firestore.collection('despesas')
+        .doc(_despesasTables[tableIndex]['id'])
+        .collection('expensas').doc().id;
     _despesasTables[tableIndex]['expensas'].add({
+      'id': despesaId,
       'nome': nome,
       'valor': valor,
       'paga': false,
@@ -145,9 +215,37 @@ class BeRichAppState extends ChangeNotifier {
     _saveDespesasTables();
   }
 
+  Future<void> updateDespesa(int tableIndex, int rowIndex, String newName, double newValue) async {
+    var despesa = _despesasTables[tableIndex]['expensas'][rowIndex];
+    var despesaId = despesa['id'];
+
+    _despesasTables[tableIndex]['expensas'][rowIndex] = {
+      'id': despesaId,
+      'nome': newName,
+      'valor': newValue,
+      'paga': despesa['paga'],
+    };
+    notifyListeners();
+    await _firestore.collection('despesas')
+        .doc(_despesasTables[tableIndex]['id'])
+        .collection('expensas')
+        .doc(despesaId)
+        .update({
+      'nome': newName,
+      'valor': newValue,
+    });
+    _saveDespesasTables();
+  }
+
   void removeDespesa(int tableIndex, int rowIndex) {
+    var despesaId = _despesasTables[tableIndex]['expensas'][rowIndex]['id'];
     _despesasTables[tableIndex]['expensas'].removeAt(rowIndex);
     notifyListeners();
+    _firestore.collection('despesas')
+        .doc(_despesasTables[tableIndex]['id'])
+        .collection('expensas')
+        .doc(despesaId)
+        .delete();
     _saveDespesasTables();
   }
 

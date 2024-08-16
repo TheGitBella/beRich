@@ -45,6 +45,96 @@ class _TabReceitasFixasState extends State<TabReceitasFixas> {
     );
   }
 
+  Future<void> _showEditTableDialog(int tableIndex) async {
+    TextEditingController nameController = TextEditingController();
+    String currentName = Provider.of<BeRichAppState>(context, listen: false)
+        .receitasTables[tableIndex]['nome'];
+    nameController.text = currentName;
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Editar Nome da Tabela'),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(hintText: 'Digite o Novo Nome da Tabela'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Salvar'),
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  Provider.of<BeRichAppState>(context, listen: false)
+                      .updateReceitasTableName(tableIndex, nameController.text);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showEditExpenseDialog(int tableIndex, int rowIndex) async {
+    TextEditingController nameController = TextEditingController();
+    TextEditingController valueController = TextEditingController();
+    Map<String, dynamic> row = Provider.of<BeRichAppState>(context, listen: false)
+        .receitasTables[tableIndex]['expensas'][rowIndex];
+
+    nameController.text = row['nome'];
+    valueController.text = row['valor'].toString();
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Editar Receita'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(hintText: 'Nome da receita'),
+              ),
+              TextField(
+                controller: valueController,
+                decoration: InputDecoration(hintText: 'Valor da receita'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Salvar'),
+              onPressed: () {
+                double value = double.tryParse(valueController.text) ?? 0.0;
+                if (nameController.text.isNotEmpty && value > 0) {
+                  Provider.of<BeRichAppState>(context, listen: false)
+                      .updateReceita(tableIndex, rowIndex, nameController.text, value);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showAddExpenseDialog(int tableIndex) async {
     TextEditingController nameController = TextEditingController();
     TextEditingController valueController = TextEditingController();
@@ -141,6 +231,12 @@ class _TabReceitasFixasState extends State<TabReceitasFixas> {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: tableBorderColor),
                       ),
                       IconButton(
+                        icon: Icon(Icons.settings),
+                        onPressed: () => _showEditTableDialog(tableIndex),
+                        tooltip: 'Editar Nome da Tabela',
+                        color: tableBorderColor,
+                      ),
+                      IconButton(
                         icon: Icon(Icons.remove_circle_outline),
                         onPressed: () {
                           Provider.of<BeRichAppState>(context, listen: false)
@@ -173,11 +269,10 @@ class _TabReceitasFixasState extends State<TabReceitasFixas> {
                       ...expenses.asMap().entries.map((rowEntry) {
                         int rowIndex = rowEntry.key;
                         Map<String, dynamic> row = rowEntry.value;
-                        bool isPaid = row['paga'];
 
                         return TableRow(
                           decoration: BoxDecoration(
-                            color: isPaid ? Colors.grey[300] : Colors.transparent,
+                            color: Colors.transparent,
                           ),
                           children: [
                             Padding(
@@ -185,8 +280,7 @@ class _TabReceitasFixasState extends State<TabReceitasFixas> {
                               child: Text(
                                 row['nome'],
                                 style: TextStyle(
-                                  decoration: isPaid ? TextDecoration.lineThrough : TextDecoration.none,
-                                  color: isPaid ? Colors.grey[700] : Colors.black,
+                                  color: Colors.black,
                                 ),
                               ),
                             ),
@@ -195,20 +289,18 @@ class _TabReceitasFixasState extends State<TabReceitasFixas> {
                               child: Text(
                                 currencyFormatter.format(row['valor']),
                                 style: TextStyle(
-                                  decoration: isPaid ? TextDecoration.lineThrough : TextDecoration.none,
-                                  color: isPaid ? Colors.grey[700] : Colors.black,
+                                  color: Colors.black,
                                 ),
                               ),
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Checkbox(
-                                  value: isPaid,
-                                  onChanged: (value) {
-                                    Provider.of<BeRichAppState>(context, listen: false)
-                                        .toggleReceitaPaga(tableIndex, rowIndex);
-                                  },
+                                IconButton(
+                                  icon: Icon(Icons.edit),
+                                  onPressed: () => _showEditExpenseDialog(tableIndex, rowIndex),
+                                  tooltip: 'Editar Receita',
+                                  color: tableBorderColor,
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete),
